@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>人数選択</title>
+    <style>
+        body {
+            font-family: "Segoe UI", "Meiryo", sans-serif;
+            background: #f7f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 60px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            padding: 32px 24px 24px 24px;
+            text-align: center;
+        }
+        h1 {
+            color: #2d3e50;
+            margin-bottom: 24px;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .btn-group button {
+            flex: 1;
+            margin: 0 6px;
+            padding: 16px 0;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 8px;
+            background: #4f8cff;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-group button:hover {
+            background: #357ae8;
+        }
+        .result {
+            margin-top: 24px;
+            font-size: 1.1em;
+            color: #333;
+            background: #eaf6ff;
+            border-radius: 8px;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ご来店人数を選択してください</h1>
+        <form method="post">
+            <div class="btn-group">
+                <button type="submit" name="people" value="1">1人</button>
+                <button type="submit" name="people" value="2">2人</button>
+                <button type="submit" name="people" value="3">3人</button>
+                <button type="submit" name="people" value="4">4人</button>
+            </div>
+        </form>
+        {% if seat_type and available_table_id %}
+            <div class="result">
+                <strong>{{ seat_type }}席（卓番号: {{ available_table_id }}）</strong>にご案内します。
+            </div>
+        {% elif seat_type %}
+            <div class="result">
+                <strong>{{ seat_type }}席</strong>は空いていません。
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -28,7 +28,7 @@ def select_people():
                 available_table_id = table["id"]
                 table["is_available"] = False
                 break
-    return render_template("select_people.html", seat_type=seat_type, available_table_id=available_table_id)
+    return render_template("select_people_design.html", seat_type=seat_type, available_table_id=available_table_id)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)

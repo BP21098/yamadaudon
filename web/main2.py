@@ -45,13 +45,21 @@ def capture_and_analyze():
             print("=== 解析結果 ===")
             print(analysis_result)
             print("================")
-            return analysis_result
+            
+            # 解析結果が辞書形式かどうか確認
+            if isinstance(analysis_result, dict):
+                return analysis_result
+            else:
+                return {"error": "解析結果の形式が不正です", "raw_result": str(analysis_result)}
+                
         except Exception as e:
+            error_msg = f"解析エラー: {str(e)}"
             print("GPT-4o 呼び出しエラー:", e)
-            return f"解析エラー: {str(e)}"
+            return {"error": error_msg}
     else:
         print("カメラから画像を取得できませんでした")
-        return "カメラエラー"
+        return {"error": "カメラエラー"}
+
 
 @app.route("/", methods=["GET", "POST"])
 def select_people():

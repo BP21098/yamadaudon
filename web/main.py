@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import cv2
 import os
 import time
 import threading
+import queue
+import uuid
 from personAttrCapture import analyze_with_gpt4o  # 解析機能をインポート
 
 # --- お客様用アプリ ---
@@ -44,59 +46,46 @@ def capture_and_save():
     else:
         print("カメラから画像を取得できませんでした")
 
-# --- お客様用ルート ---
-'''
-@app.route("/", methods=["GET", "POST"])
-def select_people():
-    if request.method == "POST":
-        capture_and_save()
-        people = int(request.form.get("people", 0))
-        if people in [1, 2]:
-            seat_type = "カウンター"
-        elif people in [3, 4]:
-            seat_type = "テーブル"
+# 解析結果を保存するためのキュー
+analysis_queue = queue.Queue()
+
+def background_analyze(filename, table_id, session_id):
+    """バックグラウンドで画像解析を実行"""
+    try:
+        print("→ GPT-4o に属性解析を依頼中 …")
+        analysis_result = analyze_with_gpt4o(filename, table_id)
+        print("=== 解析結果 ===")
+        print(analysis_result)
+        print("================")
+        
+        # 解析結果をキューに保存（セッションIDと一緒に）
+        if isinstance(analysis_result, dict):
+            analysis_queue.put((session_id, analysis_result))
         else:
-            seat_type = "該当なし"
-        available_table_id = None
-        for table in tables:
-            if table["type"] == seat_type and table["is_available"]:
-                available_table_id = table["id"]
-                table["is_available"] = False
-                break
-        session["seat_type"] = seat_type
-        session["available_table_id"] = available_table_id
-        return redirect(url_for("show_result"))
-    return render_template("select_people_design.html")
-'''
-'''
-@app.route("/", methods=["GET", "POST"])
-def select_people():
-    if request.method == "POST":
-        capture_and_save()
-        seat_type = request.form.get("seat_type")
-        people = int(request.form.get("people", 0))
+            analysis_queue.put((session_id, {"error": "解析結果の形式が不正です", "raw_result": str(analysis_result)}))
+            
+    except Exception as e:
+        error_msg = f"解析エラー: {str(e)}"
+        print("GPT-4o 呼び出しエラー:", e)
+        analysis_queue.put((session_id, {"error": error_msg}))
 
-        # 人数ボタンが押された瞬間に写真を撮影・解析
-        #analysis_result = capture_and_analyze()
-        analysis_result = capture_and_analyze(table_id=available_table_id)
-
-        # 席種と人数の整合性チェック
-        if seat_type == "カウンター" and people not in [1, 2, 3]:
-            return render_template("select_people_design.html", error="カウンターは1～3人のみです")
-        if seat_type == "テーブル" and people not in [1, 2, 3, 4]:
-            return render_template("select_people_design.html", error="テーブルは1～4人のみです")
-        available_table_id = None
-        for table in tables:
-            if table["type"] == seat_type and table["is_available"]:
-                available_table_id = table["id"]
-                table["is_available"] = False
-                break
-        session["seat_type"] = seat_type
-        session["available_table_id"] = available_table_id
-        session["analysis_result"] = analysis_result  # 解析結果をセッションに保存
-        return redirect(url_for("show_result"))
-    return render_template("select_people_design.html")
-'''
+def capture_and_analyze_async(table_id, session_id):
+    """写真を撮影し、バックグラウンドで解析を開始"""
+    ret, frame = camera.read()
+    if ret:
+        filename = f"dataset/photo_{int(time.time())}.jpg"
+        cv2.imwrite(filename, frame)
+        print(f"写真を保存しました: {filename}")
+        
+        # バックグラウンドで解析を開始
+        analysis_thread = threading.Thread(target=background_analyze, args=(filename, table_id, session_id))
+        analysis_thread.daemon = True
+        analysis_thread.start()
+        
+        return {"status": "analyzing", "message": "解析中です..."}
+    else:
+        print("カメラから画像を取得できませんでした")
+        return {"error": "カメラエラー"}
 
 @app.route("/", methods=["GET", "POST"])
 def select_people():
@@ -118,22 +107,53 @@ def select_people():
                 table["is_available"] = False
                 break
 
-        # その後で写真撮影・解析
-        analysis_result = capture_and_analyze(table_id=available_table_id)
+        # セッションIDを生成
+        session_id = str(uuid.uuid4())
+        session["session_id"] = session_id
+
+        # 写真撮影・バックグラウンド解析開始
+        analysis_status = capture_and_analyze_async(table_id=available_table_id, session_id=session_id)
 
         session["seat_type"] = seat_type
         session["available_table_id"] = available_table_id
-        session["analysis_result"] = analysis_result  # 解析結果をセッションに保存
+        session["analysis_status"] = analysis_status  # 解析ステータスをセッションに保存
         return redirect(url_for("show_result"))
     return render_template("select_people_design.html")
+
+@app.route("/get_analysis_result")
+def get_analysis_result():
+    """解析結果を取得するAPI"""
+    session_id = session.get("session_id")
+    if not session_id:
+        return jsonify({"status": "no_session"})
+    
+    # キューから該当するセッションの結果を探す
+    temp_results = []
+    while not analysis_queue.empty():
+        try:
+            stored_session_id, result = analysis_queue.get_nowait()
+            if stored_session_id == session_id:
+                return jsonify({"status": "complete", "result": result})
+            else:
+                temp_results.append((stored_session_id, result))
+        except queue.Empty:
+            break
+    
+    # 他のセッションの結果をキューに戻す
+    for item in temp_results:
+        analysis_queue.put(item)
+    
+    return jsonify({"status": "analyzing"})
 
 @app.route("/result")
 def show_result():
     seat_type = session.get("seat_type")
     available_table_id = session.get("available_table_id")
-    return render_template("result.html", seat_type=seat_type, available_table_id=available_table_id)
-# ...existing code...
-
+    analysis_status = session.get("analysis_status", {})
+    return render_template("result.html", 
+                         seat_type=seat_type, 
+                         available_table_id=available_table_id,
+                         analysis_status=analysis_status)
 
 # --- 店員用ルート ---
 

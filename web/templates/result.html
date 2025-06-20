@@ -26,5 +26,11 @@
         {% endif %}
         <a href="{{ url_for('select_people') }}" class="back-btn">戻る</a>
     </div>
+    <script>
+        // 2分（120秒）後に自動でトップページに戻る
+        setTimeout(function() {
+            window.location.href = "{{ url_for('select_people') }}";
+        }, 120000);
+    </script>
 </body>
 </html>

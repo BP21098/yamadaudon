@@ -1,0 +1,68 @@
+<!-- 任意のHTMLファイルに保存してブラウザで開いてください -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>人数選択とカメラ撮影</title>
+    <style>
+        .btn-group button {
+            margin: 8px;
+            padding: 16px 32px;
+            font-size: 1.2em;
+        }
+        #camera, #photo {
+            display: block;
+            margin: 24px auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>ご来店人数を選択してください</h1>
+    <div class="btn-group">
+        <button onclick="startCamera()">1人</button>
+        <button onclick="startCamera()">2人</button>
+        <button onclick="startCamera()">3人</button>
+        <button onclick="startCamera()">4人</button>
+    </div>
+    <video id="camera" width="400" height="300" autoplay playsinline style="display:none;"></video>
+    <button id="shootBtn" style="display:none;" onclick="takePhoto()">写真を撮る</button>
+    <img id="photo" alt="撮影した写真" style="display:none;"/>
+
+    <script>
+        let stream = null;
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    const video = document.getElementById('camera');
+                    video.srcObject = mediaStream;
+                    video.style.display = 'block';
+                    document.getElementById('shootBtn').style.display = 'inline-block';
+                })
+                .catch(function(err) {
+                    alert('カメラの起動に失敗しました: ' + err);
+                });
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('camera');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const img = document.getElementById('photo');
+            img.src = canvas.toDataURL('image/png');
+            img.style.display = 'block';
+            // カメラ停止
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.style.display = 'none';
+            document.getElementById('shootBtn').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

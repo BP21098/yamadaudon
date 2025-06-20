@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>人数選択</title>
+</head>
+<body>
+    <h1>人数を選択してください</h1>
+    <form method="post">
+        <button type="submit" name="people" value="1">1人</button>
+        <button type="submit" name="people" value="2">2人</button>
+        <button type="submit" name="people" value="3">3人</button>
+        <button type="submit" name="people" value="4">4人</button>
+    </form>
+    {% if seat_type and available_table_id %}
+        <h2>{{ seat_type }}席（卓番号: {{ available_table_id }}）にお座りください</h2>
+    {% elif seat_type %}
+        <h2>{{ seat_type }}席は空いていません</h2>
+    {% endif %}
+</body>
+</html>

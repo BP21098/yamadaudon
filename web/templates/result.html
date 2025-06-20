@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>席案内</title>
+    <style>
+        body { font-family: "Segoe UI", "Meiryo", sans-serif; background: #f7f7fa; margin: 0; padding: 0; }
+        .container { max-width: 400px; margin: 60px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 32px 24px 24px 24px; text-align: center; }
+        h1 { color: #2d3e50; margin-bottom: 24px; }
+        .result { margin-top: 24px; font-size: 1.1em; color: #333; background: #eaf6ff; border-radius: 8px; padding: 16px; }
+        .back-btn { margin-top: 24px; display: inline-block; padding: 10px 24px; background: #4f8cff; color: #fff; border-radius: 8px; text-decoration: none; }
+        .back-btn:hover { background: #357ae8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>席案内</h1>
+        {% if seat_type and available_table_id %}
+            <div class="result">
+                <strong>{{ seat_type }}席（卓番号: {{ available_table_id }}）</strong>にご案内します。
+            </div>
+        {% elif seat_type %}
+            <div class="result">
+                <strong>{{ seat_type }}席</strong>は空いていません。
+            </div>
+        {% endif %}
+        <a href="{{ url_for('select_people') }}" class="back-btn">戻る</a>
+    </div>
+</body>
+</html>

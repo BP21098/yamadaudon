@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>席・人数選択</title>
+    <style>
+        body { font-family: "Segoe UI", "Meiryo", sans-serif; background: #f7f7fa; margin: 0; padding: 0; }
+        .container { max-width: 400px; margin: 60px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 32px 24px 24px 24px; text-align: center; }
+        h1 { color: #2d3e50; margin-bottom: 24px; }
+        .btn-group { display: flex; justify-content: space-between; margin-bottom: 24px; }
+        .btn-group button { flex: 1; margin: 0 6px; padding: 16px 0; font-size: 1.2em; border: none; border-radius: 8px; background: #4f8cff; color: #fff; cursor: pointer; transition: background 0.2s; }
+        .btn-group button:hover { background: #357ae8; }
+        .btn-group button.selected { background: #2ecc40; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>席種と人数を選択してください</h1>
+        <form method="post" id="selectForm">
+            <div class="btn-group" id="seatTypeGroup">
+                <button type="button" onclick="selectSeatType('カウンター')" id="counterBtn">カウンター</button>
+                <button type="button" onclick="selectSeatType('テーブル')" id="tableBtn">テーブル</button>
+            </div>
+            <div class="btn-group hidden" id="peopleGroup">
+                <button type="submit" name="people" value="1" id="p1">1人</button>
+                <button type="submit" name="people" value="2" id="p2">2人</button>
+                <button type="submit" name="people" value="3" id="p3">3人</button>
+                <button type="submit" name="people" value="4" id="p4">4人</button>
+            </div>
+            <input type="hidden" name="seat_type" id="seatTypeInput">
+        </form>
+    </div>
+    <script>
+        let selectedSeatType = null;
+        function selectSeatType(type) {
+            selectedSeatType = type;
+            document.getElementById('seatTypeInput').value = type;
+            document.getElementById('peopleGroup').classList.remove('hidden');
+            // ボタン色変更
+            document.getElementById('counterBtn').classList.remove('selected');
+            document.getElementById('tableBtn').classList.remove('selected');
+            if(type === 'カウンター') {
+                document.getElementById('counterBtn').classList.add('selected');
+                // カウンターは1～3人
+                document.getElementById('p1').style.display = '';
+                document.getElementById('p2').style.display = '';
+                document.getElementById('p3').style.display = '';
+                document.getElementById('p4').style.display = 'none';
+            } else {
+                document.getElementById('tableBtn').classList.add('selected');
+                // テーブルは1～4人
+                document.getElementById('p1').style.display = '';
+                document.getElementById('p2').style.display = '';
+                document.getElementById('p3').style.display = '';
+                document.getElementById('p4').style.display = '';
+            }
+        }
+        // 直接人数ボタンが押されないように
+        document.getElementById('selectForm').addEventListener('submit', function(e){
+            if(!selectedSeatType){
+                e.preventDefault();
+                alert('先に席種を選択してください');
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+<!--人数選択のみ-->
+<!--
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>人数選択</title>
+    <style>
+        body {
+            font-family: "Segoe UI", "Meiryo", sans-serif;
+            background: #f7f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 60px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            padding: 32px 24px 24px 24px;
+            text-align: center;
+        }
+        h1 {
+            color: #2d3e50;
+            margin-bottom: 24px;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .btn-group button {
+            flex: 1;
+            margin: 0 6px;
+            padding: 16px 0;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 8px;
+            background: #4f8cff;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-group button:hover {
+            background: #357ae8;
+        }
+        .result {
+            margin-top: 24px;
+            font-size: 1.1em;
+            color: #333;
+            background: #eaf6ff;
+            border-radius: 8px;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ご来店人数を選択してください</h1>
+        <form method="post">
+            <div class="btn-group">
+                <button type="submit" name="people" value="1">1人</button>
+                <button type="submit" name="people" value="2">2人</button>
+                <button type="submit" name="people" value="3">3人</button>
+                <button type="submit" name="people" value="4">4人</button>
+            </div>
+        </form>
+        {% if seat_type and available_table_id %}
+            <div class="result">
+                <strong>{{ seat_type }}席（卓番号: {{ available_table_id }}）</strong>にご案内します。
+            </div>
+        {% elif seat_type %}
+            <div class="result">
+                <strong>{{ seat_type }}席</strong>は空いていません。
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+-->

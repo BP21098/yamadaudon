@@ -46,8 +46,15 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
 
 def save_to_json(data: dict, image_path: str, table_id: int = None, seat_end_time: str = None):
     """分析結果をJSONファイルに保存する関数"""
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"analysis_result_{timestamp}.json"
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+    date_str = now.strftime("%Y-%m-%d")
+    
+    # 日付ごとのディレクトリを作成
+    date_dir = f"analysis_results/{date_str}"
+    os.makedirs(date_dir, exist_ok=True)
+    
+    filename = f"{date_dir}/analysis_result_{timestamp}.json"
     
     # 画像パス情報と卓番号、席を空けた時間も含める
     output_data = {
@@ -67,8 +74,15 @@ def update_seat_end_time(table_id: int):
     """指定されたテーブルIDの最新のJSONファイルに席を空けた時間を追記する関数"""
     import glob
     
-    # 最新のJSONファイルを取得
-    json_files = glob.glob("analysis_result_*.json")
+    # 今日の日付のディレクトリから最新のJSONファイルを取得
+    today = datetime.now().strftime("%Y-%m-%d")
+    today_dir = f"analysis_results/{today}"
+    
+    if not os.path.exists(today_dir):
+        print(f"今日の日付のディレクトリが見つかりません: {today_dir}")
+        return
+    
+    json_files = glob.glob(f"{today_dir}/analysis_result_*.json")
     if not json_files:
         print("更新対象のJSONファイルが見つかりません")
         return

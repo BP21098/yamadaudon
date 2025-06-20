@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-06-20_16-13-51",
+  "image_path": "dataset/photo_1750403629.jpg",
+  "table_id": 5,
+  "analysis_result": {
+    "men": 6,
+    "women": 1,
+    "children": 0,
+    "total": 7
+  }
+}

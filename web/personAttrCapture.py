@@ -6,7 +6,9 @@ from datetime import datetime
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def analyze_with_gpt4o(image_path: str) -> dict:
+#def analyze_with_gpt4o(image_path: str) -> dict:
+def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
+
     """画像ファイルをGPT-4oで解析してJSON形式で結果を返す関数"""
     # ファイルの存在確認
     if not os.path.exists(image_path):
@@ -41,10 +43,29 @@ def analyze_with_gpt4o(image_path: str) -> dict:
     result = json.loads(resp.choices[0].message.content.strip())
     
     # JSONファイルに保存
-    save_to_json(result, image_path)
-    
+    #save_to_json(result, image_path)
+    #return result
+    save_to_json(result, image_path, table_id)
     return result
 
+def save_to_json(data: dict, image_path: str, table_id: int = None):
+    """分析結果をJSONファイルに保存する関数"""
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"analysis_result_{timestamp}.json"
+    
+    # 画像パス情報と卓番号も含める
+    output_data = {
+        "timestamp": timestamp,
+        "image_path": image_path,
+        "table_id": table_id,
+        "analysis_result": data
+    }
+    
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(output_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"結果をJSONファイルに保存しました: {filename}")
+'''
 def save_to_json(data: dict, image_path: str):
     """分析結果をJSONファイルに保存する関数"""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -61,6 +82,7 @@ def save_to_json(data: dict, image_path: str):
         json.dump(output_data, f, ensure_ascii=False, indent=2)
     
     print(f"結果をJSONファイルに保存しました: {filename}")
+'''
 
 # 直接実行時のテスト（インポート時は実行されない）
 if __name__ == "__main__":

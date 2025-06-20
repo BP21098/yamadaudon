@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>店員用：卓管理</title>
+    <style>
+        body { font-family: "Segoe UI", "Meiryo", sans-serif; background: #f7f7fa; }
+        .container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 32px 24px 24px 24px; }
+        h1 { color: #2d3e50; margin-bottom: 24px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        .available { color: #2ecc40; font-weight: bold; }
+        .occupied { color: #ff4136; font-weight: bold; }
+        form { display: inline; }
+        button { padding: 6px 16px; border: none; border-radius: 6px; background: #4f8cff; color: #fff; cursor: pointer; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>卓一覧（店員用）</h1>
+        <table>
+            <tr>
+                <th>卓番号</th>
+                <th>種別</th>
+                <th>状態</th>
+                <th>操作</th>
+            </tr>
+            {% for table in tables %}
+            <tr>
+                <td>{{ table.id }}</td>
+                <td>{{ table.type }}</td>
+                <td>
+                    {% if table.is_available %}
+                        <span class="available">空き</span>
+                    {% else %}
+                        <span class="occupied">使用中</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not table.is_available %}
+                    <form method="post">
+                        <input type="hidden" name="table_id" value="{{ table.id }}">
+                        <button type="submit">空きにする</button>
+                    </form>
+                    {% else %}
+                        <button type="button" disabled>空き</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <script>
+        // 5秒ごとにページを自動リロード
+        setInterval(function() {
+            window.location.reload();
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import cv2
 import os
 import time
 import threading
+from personAttrCapture import analyze_with_gpt4o  # 解析機能をインポート
 
 # --- お客様用アプリ ---
 app = Flask(__name__)
@@ -73,6 +74,10 @@ def select_people():
         capture_and_save()
         seat_type = request.form.get("seat_type")
         people = int(request.form.get("people", 0))
+
+        # 人数ボタンが押された瞬間に写真を撮影・解析
+        analysis_result = capture_and_analyze()
+
         # 席種と人数の整合性チェック
         if seat_type == "カウンター" and people not in [1, 2, 3]:
             return render_template("select_people_design.html", error="カウンターは1～3人のみです")
@@ -86,6 +91,7 @@ def select_people():
                 break
         session["seat_type"] = seat_type
         session["available_table_id"] = available_table_id
+        session["analysis_result"] = analysis_result  # 解析結果をセッションに保存
         return redirect(url_for("show_result"))
     return render_template("select_people_design.html")
 
@@ -109,6 +115,40 @@ def staff_index():
                 break
         return redirect(url_for("staff_index"))
     return render_template("table.html", tables=tables)
+
+
+
+
+def capture_and_analyze():
+    """写真を撮影し、GPT-4oで解析する"""
+    ret, frame = camera.read()
+    if ret:
+        filename = f"dataset/photo_{int(time.time())}.jpg"
+        cv2.imwrite(filename, frame)
+        print(f"写真を保存しました: {filename}")
+        
+        # 画像解析を実行
+        try:
+            print("→ GPT-4o に属性解析を依頼中 …")
+            analysis_result = analyze_with_gpt4o(filename)
+            print("=== 解析結果 ===")
+            print(analysis_result)
+            print("================")
+            
+            # 解析結果が辞書形式かどうか確認
+            if isinstance(analysis_result, dict):
+                return analysis_result
+            else:
+                return {"error": "解析結果の形式が不正です", "raw_result": str(analysis_result)}
+                
+        except Exception as e:
+            error_msg = f"解析エラー: {str(e)}"
+            print("GPT-4o 呼び出しエラー:", e)
+            return {"error": error_msg}
+    else:
+        print("カメラから画像を取得できませんでした")
+        return {"error": "カメラエラー"}
+
 
 
 # --- Flaskアプリ2つを同時起動 ---
@@ -278,4 +318,6 @@ if __name__ == "__main__":
 
 
 
-# アクセスできるURL： http://127.0.0.1:5001
+# アクセスできるURL： 
+# http://127.0.0.1:5001  # お客様用アプリ
+# http://127.0.0.1:5002  # 店員用アプリ

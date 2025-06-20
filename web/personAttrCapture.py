@@ -6,9 +6,7 @@ from datetime import datetime
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-#def analyze_with_gpt4o(image_path: str) -> dict:
 def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
-
     """画像ファイルをGPT-4oで解析してJSON形式で結果を返す関数"""
     # ファイルの存在確認
     if not os.path.exists(image_path):
@@ -43,21 +41,20 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
     result = json.loads(resp.choices[0].message.content.strip())
     
     # JSONファイルに保存
-    #save_to_json(result, image_path)
-    #return result
     save_to_json(result, image_path, table_id)
     return result
 
-def save_to_json(data: dict, image_path: str, table_id: int = None):
+def save_to_json(data: dict, image_path: str, table_id: int = None, seat_end_time: str = None):
     """分析結果をJSONファイルに保存する関数"""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"analysis_result_{timestamp}.json"
     
-    # 画像パス情報と卓番号も含める
+    # 画像パス情報と卓番号、席を空けた時間も含める
     output_data = {
-        "timestamp": timestamp,
         "image_path": image_path,
         "table_id": table_id,
+        "seat_start_time": timestamp,  # 席に着いた時間
+        "seat_end_time": seat_end_time,  # 席を空けた時間（最初はNone）
         "analysis_result": data
     }
     
@@ -65,24 +62,43 @@ def save_to_json(data: dict, image_path: str, table_id: int = None):
         json.dump(output_data, f, ensure_ascii=False, indent=2)
     
     print(f"結果をJSONファイルに保存しました: {filename}")
-'''
-def save_to_json(data: dict, image_path: str):
-    """分析結果をJSONファイルに保存する関数"""
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"analysis_result_{timestamp}.json"
+
+def update_seat_end_time(table_id: int):
+    """指定されたテーブルIDの最新のJSONファイルに席を空けた時間を追記する関数"""
+    import glob
     
-    # 画像パス情報も含める
-    output_data = {
-        "timestamp": timestamp,
-        "image_path": image_path,
-        "analysis_result": data
-    }
+    # 最新のJSONファイルを取得
+    json_files = glob.glob("analysis_result_*.json")
+    if not json_files:
+        print("更新対象のJSONファイルが見つかりません")
+        return
     
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(output_data, f, ensure_ascii=False, indent=2)
+    # 最新のファイルを特定
+    json_files.sort(reverse=True)
     
-    print(f"結果をJSONファイルに保存しました: {filename}")
-'''
+    # 指定されたテーブルIDの最新のファイルを探す
+    for json_file in json_files:
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # テーブルIDが一致し、まだ席を空けた時間が記録されていない場合
+            if data.get("table_id") == table_id and data.get("seat_end_time") is None:
+                # 席を空けた時間を追記
+                data["seat_end_time"] = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                
+                # ファイルを更新
+                with open(json_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                
+                print(f"テーブル{table_id}の席を空けた時間を記録しました: {json_file}")
+                return
+                
+        except Exception as e:
+            print(f"ファイル処理エラー: {json_file}, {e}")
+            continue
+    
+    print(f"テーブル{table_id}の更新対象ファイルが見つかりませんでした")
 
 # 直接実行時のテスト（インポート時は実行されない）
 if __name__ == "__main__":

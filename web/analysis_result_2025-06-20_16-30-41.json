@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-06-20_16-30-41",
+  "image_path": "dataset/photo_1750404639.jpg",
+  "table_id": 5,
+  "seat_start_time": "2025-06-20_16-30-41",
+  "seat_end_time": "2025-06-20_16-33-54",
+  "analysis_result": {
+    "men": 1,
+    "women": 0,
+    "children": 0,
+    "total": 1
+  }
+}

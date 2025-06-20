@@ -5,7 +5,7 @@ import time
 import threading
 import queue
 import uuid
-from personAttrCapture import analyze_with_gpt4o  # 解析機能をインポート
+from personAttrCapture import analyze_with_gpt4o, update_seat_end_time  # update_seat_end_timeをインポート
 
 # --- お客様用アプリ ---
 app = Flask(__name__)
@@ -164,6 +164,8 @@ def staff_index():
         for table in tables:
             if table["id"] == table_id:
                 table["is_available"] = True  # 空き状態にする
+                # 席を空けた時間をJSONファイルに記録
+                update_seat_end_time(table_id)
                 break
         return redirect(url_for("staff_index"))
     return render_template("table.html", tables=tables)

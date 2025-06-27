@@ -4,12 +4,61 @@
     <meta charset="UTF-8">
     <title>席案内</title>
     <style>
-        body { font-family: "Segoe UI", "Meiryo", sans-serif; background: #f7f7fa; margin: 0; padding: 0; }
-        .container { max-width: 400px; margin: 60px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 32px 24px 24px 24px; text-align: center; }
-        h1 { color: #2d3e50; margin-bottom: 24px; }
-        .result { margin-top: 24px; font-size: 1.1em; color: #333; background: #eaf6ff; border-radius: 8px; padding: 16px; }
-        .back-btn { margin-top: 24px; display: inline-block; padding: 10px 24px; background: #4f8cff; color: #fff; border-radius: 8px; text-decoration: none; }
-        .back-btn:hover { background: #357ae8; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            height: 100vh;
+            width: 100vw;
+            background: #f7f7fa;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* ← 上寄せに変更 */
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* ← 上寄せに変更 */
+            background: #fff;
+            border-radius: 0;
+            box-shadow: none;
+            padding-top: 6vh; /* ← 上に余白を追加（例: 6vh） */
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #2d3e50;
+            margin-bottom: 32px;
+            font-size: 2.5em;
+        }
+        .result {
+            margin-top: 24px;
+            font-size: 2em;
+            color: #333;
+            background: #eaf6ff;
+            border-radius: 16px;
+            padding: 32px 48px;
+            min-width: 320px;
+        }
+        .back-btn {
+            margin-top: 40px;
+            display: inline-block;
+            padding: 18px 48px;
+            background: #4f8cff;
+            color: #fff;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 1.3em;
+            border: none;
+            cursor: pointer;
+        }
+        .back-btn:hover {
+            background: #357ae8;
+        }
     </style>
 </head>
 <body>
@@ -30,7 +79,7 @@
         // 2分（120秒）後に自動でトップページに戻る
         setTimeout(function() {
             window.location.href = "{{ url_for('select_people') }}";
-        }, 120000);
+        }, 60000);
     </script>
 </body>
 </html>

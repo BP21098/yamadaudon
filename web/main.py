@@ -86,6 +86,33 @@ def capture_and_analyze_async(table_id, session_id):
     else:
         print("カメラから画像を取得できませんでした")
         return {"error": "カメラエラー"}
+    
+
+def find_best_table(seat_type):
+    """隣が使用中でない空席を優先して返す"""
+    # 対象となる席リスト
+    filtered = [t for t in tables if t["type"] == seat_type]
+    n = len(filtered)
+    # 空席候補
+    candidates = []
+    for i, table in enumerate(filtered):
+        if not table["is_available"]:
+            continue
+        # 両隣のチェック
+        left_ok = (i == 0) or filtered[i-1]["is_available"]
+        right_ok = (i == n-1) or filtered[i+1]["is_available"]
+        if left_ok and right_ok:
+            candidates.append(table)
+    # 両隣が空いている席があればそこを優先
+    if candidates:
+        return candidates[0]["id"]
+    # それ以外の空席から選ぶ
+    for table in filtered:
+        if table["is_available"]:
+            return table["id"]
+    return None
+
+
 
 @app.route("/", methods=["GET", "POST"])
 def select_people():
@@ -99,11 +126,14 @@ def select_people():
         if seat_type == "テーブル" and people not in [1, 2, 3, 4]:
             return render_template("select_people_design.html", error="テーブルは1～4人のみです")
 
-        # ここでavailable_table_idを決定
-        available_table_id = None
+        # 隣を避けて席を割り当て
+        available_table_id = find_best_table(seat_type)
+        if available_table_id is None:
+            return render_template("select_people_design.html", error="空席がありません")
+
+        # 席を使用中にする
         for table in tables:
-            if table["type"] == seat_type and table["is_available"]:
-                available_table_id = table["id"]
+            if table["id"] == available_table_id:
                 table["is_available"] = False
                 break
 
@@ -116,9 +146,11 @@ def select_people():
 
         session["seat_type"] = seat_type
         session["available_table_id"] = available_table_id
-        session["analysis_status"] = analysis_status  # 解析ステータスをセッションに保存
+        session["analysis_status"] = analysis_status
         return redirect(url_for("show_result"))
     return render_template("select_people_design.html")
+
+
 
 @app.route("/get_analysis_result")
 def get_analysis_result():

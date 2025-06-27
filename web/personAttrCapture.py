@@ -7,7 +7,7 @@ from datetime import datetime
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
+def analyze_with_gpt4o(image_path: str, table_id: int = None, people: int = None) -> dict:
     """画像ファイルをGPT-4oで解析してJSON形式で結果を返す関数"""
     # ファイルの存在確認
     if not os.path.exists(image_path):
@@ -82,19 +82,23 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
     
     # JSONファイルに保存
     save_to_json(result, image_path, table_id)
-    # ★ここでCSVにも保存
-    save_analysis_as_csv({
-        "image_path": image_path,
-        "table_id": table_id,
-        "seat_start_time": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-        "seat_end_time": None,
-        "analysis_result": result,
-        "metadata": {
-            "analyzed_at": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-            "model_used": "gpt-4o",
-            "analysis_version": "v2.0_detailed_age"
-        }
-    }, "analysis_results/analysis_result.csv")
+    # CSVにも保存
+    save_analysis_as_csv(
+        {
+            "image_path": image_path,
+            "table_id": table_id,
+            "seat_start_time": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+            "seat_end_time": None,
+            "analysis_result": result,
+            "metadata": {
+                "analyzed_at": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+                "model_used": "gpt-4o",
+                "analysis_version": "v2.0_detailed_age"
+            }
+        },
+        "analysis_results/analysis_result.csv",
+        selected_people=people  # ボタンで選択された人数
+    )
     return result
 
 def save_to_json(data: dict, image_path: str, table_id: int = None, seat_end_time: str = None):
@@ -213,15 +217,22 @@ def print_analysis_summary(result: dict):
     
     print("="*50)
 
-def save_analysis_as_csv(json_data, csv_path):
+def save_analysis_as_csv(json_data, csv_path, selected_people=None):
     """
     analysis_resultのdetailed_analysisをCSVで保存
+    selected_people: ボタンで選択された人数（int）
     """
     analysis = json_data["analysis_result"]
     detailed = analysis.get("detailed_analysis", [])
+    total_count = analysis.get("total_count", None)
+    # 差分を計算
+    people_diff = None
+    if selected_people is not None and total_count is not None:
+        people_diff = int(selected_people) - int(total_count)
     # CSVのヘッダー
     fieldnames = [
         "image_path", "table_id", "seat_start_time", "seat_end_time",
+        "selected_people", "camera_total", "people_diff",
         "person_id", "gender", "estimated_age_range", "age_category", "confidence"
     ]
     # ファイルがなければヘッダーを書き込む
@@ -236,6 +247,9 @@ def save_analysis_as_csv(json_data, csv_path):
                 "table_id": json_data.get("table_id"),
                 "seat_start_time": json_data.get("seat_start_time"),
                 "seat_end_time": json_data.get("seat_end_time"),
+                "selected_people": selected_people,
+                "camera_total": total_count,
+                "people_diff": people_diff,
                 "person_id": person.get("person_id"),
                 "gender": person.get("gender"),
                 "estimated_age_range": person.get("estimated_age_range"),

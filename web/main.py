@@ -49,11 +49,11 @@ def capture_and_save():
 # 解析結果を保存するためのキュー
 analysis_queue = queue.Queue()
 
-def background_analyze(filename, table_id, session_id):
+def background_analyze(filename, table_id, session_id, people):
     """バックグラウンドで画像解析を実行"""
     try:
         print("→ GPT-4o に属性解析を依頼中 …")
-        analysis_result = analyze_with_gpt4o(filename, table_id)
+        analysis_result = analyze_with_gpt4o(filename, table_id, people)
         print("=== 解析結果 ===")
         print(analysis_result)
         print("================")
@@ -69,19 +69,21 @@ def background_analyze(filename, table_id, session_id):
         print("GPT-4o 呼び出しエラー:", e)
         analysis_queue.put((session_id, {"error": error_msg}))
 
-def capture_and_analyze_async(table_id, session_id):
+def capture_and_analyze_async(table_id, session_id, people):
     """写真を撮影し、バックグラウンドで解析を開始"""
     ret, frame = camera.read()
     if ret:
         filename = f"dataset/photo_{int(time.time())}.jpg"
         cv2.imwrite(filename, frame)
         print(f"写真を保存しました: {filename}")
-        
+
         # バックグラウンドで解析を開始
-        analysis_thread = threading.Thread(target=background_analyze, args=(filename, table_id, session_id))
+        analysis_thread = threading.Thread(
+            target=background_analyze, args=(filename, table_id, session_id, people)
+        )
         analysis_thread.daemon = True
         analysis_thread.start()
-        
+
         return {"status": "analyzing", "message": "解析中です..."}
     else:
         print("カメラから画像を取得できませんでした")
@@ -118,7 +120,7 @@ def find_best_table(seat_type):
 def select_people():
     if request.method == "POST":
         seat_type = request.form.get("seat_type")
-        people = int(request.form.get("people", 0))
+        people = int(request.form.get("people", 0))  # ← ボタンから人数を取得
 
         # 席種と人数の整合性チェック
         if seat_type == "カウンター" and people not in [1, 2, 3]:
@@ -142,15 +144,15 @@ def select_people():
         session["session_id"] = session_id
 
         # 写真撮影・バックグラウンド解析開始
-        analysis_status = capture_and_analyze_async(table_id=available_table_id, session_id=session_id)
+        # peopleも渡す
+        analysis_status = capture_and_analyze_async(table_id=available_table_id, session_id=session_id, people=people)
 
         session["seat_type"] = seat_type
         session["available_table_id"] = available_table_id
         session["analysis_status"] = analysis_status
+        session["people"] = people  # セッションにも保存
         return redirect(url_for("show_result"))
     return render_template("select_people_design.html")
-
-
 
 @app.route("/get_analysis_result")
 def get_analysis_result():
@@ -193,11 +195,14 @@ def show_result():
 def staff_index():
     if request.method == "POST":
         table_id = int(request.form.get("table_id"))
+        action = request.form.get("action")
         for table in tables:
             if table["id"] == table_id:
-                table["is_available"] = True  # 空き状態にする
-                # 席を空けた時間をJSONファイルに記録
-                update_seat_end_time(table_id)
+                if action == "release":
+                    table["is_available"] = True
+                    update_seat_end_time(table_id)
+                elif action == "occupy":
+                    table["is_available"] = False
                 break
         return redirect(url_for("staff_index"))
     return render_template("table.html", tables=tables)

@@ -38,13 +38,20 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if not table.is_available %}
-                    <form method="post">
-                        <input type="hidden" name="table_id" value="{{ table.id }}">
-                        <button type="submit">空きにする</button>
-                    </form>
+                    {% if table.is_available %}
+                        <!-- 空き状態なら「使用中にする」ボタン -->
+                        <form method="post">
+                            <input type="hidden" name="table_id" value="{{ table.id }}">
+                            <input type="hidden" name="action" value="occupy">
+                            <button type="submit">使用中にする</button>
+                        </form>
                     {% else %}
-                        <button type="button" disabled>空き</button>
+                        <!-- 使用中なら「空きにする」ボタン -->
+                        <form method="post">
+                            <input type="hidden" name="table_id" value="{{ table.id }}">
+                            <input type="hidden" name="action" value="release">
+                            <button type="submit">空きにする</button>
+                        </form>
                     {% endif %}
                 </td>
             </tr>

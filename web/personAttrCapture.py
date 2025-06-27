@@ -21,11 +21,50 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
         messages=[
             {
                 "role": "system", 
-                "content": "画像に写っている男性、女性、子供の人数を分析してください。結果を以下のJSON形式で出力してください: {\"men\": 数値, \"women\": 数値, \"children\": 数値, \"total\": 数値}"
+                "content": """画像に写っている人物を詳細に分析してください。
+                
+                以下の基準で分類してください：
+                - 性別：男性、女性
+                - 年齢層：子供(0-12歳)、青少年(13-19歳)、若年成人(20-39歳)、中年(40-59歳)、高齢者(60歳以上)
+                
+                結果を以下のJSON形式で出力してください：
+                {
+                  "total_count": 総人数,
+                  "gender_breakdown": {
+                    "men": 男性の総数,
+                    "women": 女性の総数
+                  },
+                  "age_breakdown": {
+                    "children": 子供の人数,
+                    "teenagers": 青少年の人数,
+                    "young_adults": 若年成人の人数,
+                    "middle_aged": 中年の人数,
+                    "seniors": 高齢者の人数
+                  },
+                  "detailed_analysis": [
+                    {
+                      "person_id": 1,
+                      "gender": "男性 or 女性",
+                      "estimated_age_range": "推定年齢範囲",
+                      "age_category": "年齢カテゴリ",
+                      "confidence": "推定の確信度(high/medium/low)"
+                    }
+                  ],
+                  "analysis_notes": "特記事項や分析時の注意点"
+                }
+                
+                注意：
+                - 人物が明確に判別できない場合は、その旨を analysis_notes に記載してください
+                - 年齢推定は外見的特徴に基づく推定であることを理解してください
+                - 確信度が低い場合は、その旨を明記してください"""
             },
             {
                 "role": "user",
                 "content": [
+                    {
+                        "type": "text",
+                        "text": "この画像に写っている人物の性別と年齢層を詳細に分析してください。"
+                    },
                     {
                         "type": "image_url",
                         "image_url": {
@@ -60,15 +99,20 @@ def save_to_json(data: dict, image_path: str, table_id: int = None, seat_end_tim
     output_data = {
         "image_path": image_path,
         "table_id": table_id,
-        "seat_start_time": timestamp,  # 席に着いた時間
-        "seat_end_time": seat_end_time,  # 席を空けた時間（最初はNone）
-        "analysis_result": data
+        "seat_start_time": timestamp,
+        "seat_end_time": seat_end_time,
+        "analysis_result": data,
+        "metadata": {
+            "analyzed_at": timestamp,
+            "model_used": "gpt-4o",
+            "analysis_version": "v2.0_detailed_age"
+        }
     }
     
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, ensure_ascii=False, indent=2)
     
-    print(f"結果をJSONファイルに保存しました: {filename}")
+    print(f"詳細分析結果をJSONファイルに保存しました: {filename}")
 
 def update_seat_end_time(table_id: int):
     """指定されたテーブルIDの最新のJSONファイルに席を空けた時間を追記する関数"""
@@ -114,16 +158,59 @@ def update_seat_end_time(table_id: int):
     
     print(f"テーブル{table_id}の更新対象ファイルが見つかりませんでした")
 
+def print_analysis_summary(result: dict):
+    """分析結果をわかりやすく表示する関数"""
+    print("\n" + "="*50)
+    print("人物分析結果サマリー")
+    print("="*50)
+    
+    print(f"総人数: {result.get('total_count', 0)}人")
+    
+    # 性別内訳
+    gender = result.get('gender_breakdown', {})
+    print(f"\n【性別内訳】")
+    print(f"  男性: {gender.get('men', 0)}人")
+    print(f"  女性: {gender.get('women', 0)}人")
+    
+    # 年齢層内訳
+    age = result.get('age_breakdown', {})
+    print(f"\n【年齢層内訳】")
+    print(f"  子供 (0-12歳): {age.get('children', 0)}人")
+    print(f"  青少年 (13-19歳): {age.get('teenagers', 0)}人")
+    print(f"  若年成人 (20-39歳): {age.get('young_adults', 0)}人")
+    print(f"  中年 (40-59歳): {age.get('middle_aged', 0)}人")
+    print(f"  高齢者 (60歳以上): {age.get('seniors', 0)}人")
+    
+    # 詳細分析
+    details = result.get('detailed_analysis', [])
+    if details:
+        print(f"\n【個別分析】")
+        for person in details:
+            print(f"  人物{person.get('person_id')}: "
+                  f"{person.get('gender')} / "
+                  f"{person.get('estimated_age_range')} / "
+                  f"確信度: {person.get('confidence')}")
+    
+    # 特記事項
+    notes = result.get('analysis_notes', '')
+    if notes:
+        print(f"\n【特記事項】")
+        print(f"  {notes}")
+    
+    print("="*50)
+
 # 直接実行時のテスト（インポート時は実行されない）
 if __name__ == "__main__":
     # テスト用の画像パスを指定
-    test_image_path = "test_image.jpg"  # 実際のファイルがある場合のみ
+    test_image_path = "test_image.jpg"
     
     if os.path.exists(test_image_path):
         try:
-            result = analyze_with_gpt4o(test_image_path)
-            print("分析結果:", result)
+            result = analyze_with_gpt4o(test_image_path, table_id=1)
+            print_analysis_summary(result)
         except Exception as e:
             print(f"エラー: {e}")
     else:
         print("テスト画像ファイルが見つかりません")
+        print("使用例:")
+        print("result = analyze_with_gpt4o('path/to/image.jpg', table_id=1)")

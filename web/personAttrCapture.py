@@ -1,4 +1,5 @@
 import os, base64, json
+import csv
 from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
@@ -81,6 +82,19 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None) -> dict:
     
     # JSONファイルに保存
     save_to_json(result, image_path, table_id)
+    # ★ここでCSVにも保存
+    save_analysis_as_csv({
+        "image_path": image_path,
+        "table_id": table_id,
+        "seat_start_time": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+        "seat_end_time": None,
+        "analysis_result": result,
+        "metadata": {
+            "analyzed_at": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+            "model_used": "gpt-4o",
+            "analysis_version": "v2.0_detailed_age"
+        }
+    }, "analysis_results/analysis_result.csv")
     return result
 
 def save_to_json(data: dict, image_path: str, table_id: int = None, seat_end_time: str = None):
@@ -198,6 +212,36 @@ def print_analysis_summary(result: dict):
         print(f"  {notes}")
     
     print("="*50)
+
+def save_analysis_as_csv(json_data, csv_path):
+    """
+    analysis_resultのdetailed_analysisをCSVで保存
+    """
+    analysis = json_data["analysis_result"]
+    detailed = analysis.get("detailed_analysis", [])
+    # CSVのヘッダー
+    fieldnames = [
+        "image_path", "table_id", "seat_start_time", "seat_end_time",
+        "person_id", "gender", "estimated_age_range", "age_category", "confidence"
+    ]
+    # ファイルがなければヘッダーを書き込む
+    write_header = not os.path.exists(csv_path)
+    with open(csv_path, "a", newline='', encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if write_header:
+            writer.writeheader()
+        for person in detailed:
+            writer.writerow({
+                "image_path": json_data.get("image_path"),
+                "table_id": json_data.get("table_id"),
+                "seat_start_time": json_data.get("seat_start_time"),
+                "seat_end_time": json_data.get("seat_end_time"),
+                "person_id": person.get("person_id"),
+                "gender": person.get("gender"),
+                "estimated_age_range": person.get("estimated_age_range"),
+                "age_category": person.get("age_category"),
+                "confidence": person.get("confidence"),
+            })
 
 # 直接実行時のテスト（インポート時は実行されない）
 if __name__ == "__main__":

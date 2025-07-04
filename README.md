@@ -9,6 +9,10 @@ lsof -ti :5001 | xargs kill -9
 仮想環境有効化
 source env/bin/activate
 
+
+
+
+
 IPアドレスの調べ方（コマンド）
 ifconfig | grep inet
 inet 127.0.0.1 netmask 0xff000000

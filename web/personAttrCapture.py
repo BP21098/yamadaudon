@@ -24,47 +24,54 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None, people: int = None
                 "role": "system", 
                 "content": """画像に写っている人物を詳細に分析してください。
                 
-                以下の基準で分類してください：
-                - 性別：男性、女性
-                - 年齢層：子供(0-12歳)、青少年(13-19歳)、若年成人(20-39歳)、中年(40-59歳)、高齢者(60歳以上)
-                
-                結果を以下のJSON形式で出力してください：
+                Classify as follows:
+                - Gender: male, female
+                - Age group: child (0-12), teenager (13-19), young_adult (20-39), middle_aged (40-59), senior (60+)
+
+                Please analyze the people in the image in detail.
+
+                Classify as follows:
+
+                Gender: male, female
+                Age group: child (0-12), teenager (13-19), young_adult (20-39), middle_aged (40-59), senior (60+)
+                Output the result in the following JSON format:
                 {
-                  "total_count": 総人数,
-                  "gender_breakdown": {
-                    "men": 男性の総数,
-                    "women": 女性の総数
-                  },
-                  "age_breakdown": {
-                    "children": 子供の人数,
-                    "teenagers": 青少年の人数,
-                    "young_adults": 若年成人の人数,
-                    "middle_aged": 中年の人数,
-                    "seniors": 高齢者の人数
-                  },
-                  "detailed_analysis": [
+                "total_count": total number of people,
+                "gender_breakdown": {
+                "men": number of males,
+                "women": number of females,
+                },
+                "age_breakdown": {
+                "children": number of children,
+                "teenagers": number of teenagers,
+                "young_adults": number of young adults,
+                "middle_aged": number of middle-aged,
+                "seniors": number of seniors,
+                },
+                "detailed_analysis": [
                     {
                       "person_id": 1,
-                      "gender": "男性 or 女性",
-                      "estimated_age_range": "推定年齢範囲",
-                      "age_category": "年齢カテゴリ",
-                      "confidence": "推定の確信度(high/medium/low)"
+                      "gender": "male or female",
+                      "estimated_age_range": "estimated age range",
+                      "age_category": "child/teenager/young_adult/middle_aged/senior",
+                      "confidence": "high/medium/low"
                     }
                   ],
-                  "analysis_notes": "特記事項や分析時の注意点"
+                  "analysis_notes": "Any special notes or caveats"
                 }
                 
-                注意：
-                - 人物が明確に判別できない場合は、その旨を analysis_notes に記載してください
-                - 年齢推定は外見的特徴に基づく推定であることを理解してください
-                - 確信度が低い場合は、その旨を明記してください"""
+                Notes:
+                - If a person cannot be clearly identified, state so in analysis_notes.
+                - Age estimation is based on appearance.
+                - If confidence is low, state so clearly.
+                """
             },
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "text",
-                        "text": "この画像に写っている人物の性別と年齢層を詳細に分析してください。"
+                        "text": "Please analyze the gender and age group of the people in this image in detail."
                     },
                     {
                         "type": "image_url",
@@ -162,12 +169,17 @@ def update_seat_end_time(table_id: int):
             if data.get("table_id") == table_id and data.get("seat_end_time") is None:
                 # 席を空けた時間を追記
                 data["seat_end_time"] = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                
                 # ファイルを更新
                 with open(json_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-                
                 print(f"テーブル{table_id}の席を空けた時間を記録しました: {json_file}")
+
+                # --- ここでCSVも更新 ---
+                update_seat_end_time_in_csv(
+                    table_id,
+                    data["seat_end_time"],
+                    "analysis_results/analysis_result.csv"
+                )
                 return
                 
         except Exception as e:
@@ -175,6 +187,27 @@ def update_seat_end_time(table_id: int):
             continue
     
     print(f"テーブル{table_id}の更新対象ファイルが見つかりませんでした")
+
+def update_seat_end_time_in_csv(table_id, seat_end_time, csv_path):
+    """
+    指定されたtable_idの最新行のseat_end_timeをCSVでも更新する
+    """
+    import pandas as pd
+
+    if not os.path.exists(csv_path):
+        print(f"CSVファイルが見つかりません: {csv_path}")
+        return
+
+    df = pd.read_csv(csv_path, encoding="utf-8")
+    # table_idが一致し、seat_end_timeが空欄の最新行を探す
+    mask = (df["table_id"] == table_id) & (df["seat_end_time"].isnull() | (df["seat_end_time"] == ""))
+    if mask.any():
+        idx = df[mask].index[-1]  # 最新行
+        df.at[idx, "seat_end_time"] = seat_end_time
+        df.to_csv(csv_path, index=False, encoding="utf-8")
+        print(f"CSVのseat_end_timeも更新しました（table_id={table_id}）")
+    else:
+        print("CSVで更新対象の行が見つかりませんでした")
 
 def print_analysis_summary(result: dict):
     """分析結果をわかりやすく表示する関数"""
@@ -229,6 +262,8 @@ def save_analysis_as_csv(json_data, csv_path, selected_people=None):
     people_diff = None
     if selected_people is not None and total_count is not None:
         people_diff = int(selected_people) - int(total_count)
+    # seat_end_timeもjson_dataから取得
+    seat_end_time = json_data.get("seat_end_time")
     # CSVのヘッダー
     fieldnames = [
         "image_path", "table_id", "seat_start_time", "seat_end_time",
@@ -246,7 +281,7 @@ def save_analysis_as_csv(json_data, csv_path, selected_people=None):
                 "image_path": json_data.get("image_path"),
                 "table_id": json_data.get("table_id"),
                 "seat_start_time": json_data.get("seat_start_time"),
-                "seat_end_time": json_data.get("seat_end_time"),
+                "seat_end_time": seat_end_time,  # ここでseat_end_timeも記録
                 "selected_people": selected_people,
                 "camera_total": total_count,
                 "people_diff": people_diff,

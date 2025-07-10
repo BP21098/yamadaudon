@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" name="mobile-web-app-capable" content="yes">
+    <title>店員用ダッシュボード</title>
+    <style>
+        body { font-family: "Segoe UI", "Meiryo", sans-serif; background: #f7f7fa; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #2d3e50; text-align: center; margin-bottom: 30px; }
+        .success { color: #2ecc40; background: #e6ffe6; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center; font-weight: bold; }
+        .table-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .table-card { background: white; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; position: relative; }
+        .table-card.available { border-left: 5px solid #2ecc40; cursor: pointer; }
+        .table-card.available:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .table-card.occupied { border-left: 5px solid #ff4136; }
+        .table-number { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; }
+        .table-type { color: #666; margin-bottom: 10px; }
+        .status { font-weight: bold; }
+        .status.available { color: #2ecc40; }
+        .status.occupied { color: #ff4136; }
+        
+        /* モーダル用スタイル */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 10% auto; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; text-align: center; }
+        .modal h2 { color: #2d3e50; margin-bottom: 20px; }
+        .people-buttons { display: flex; gap: 15px; justify-content: center; margin: 20px 0; }
+        .people-btn { padding: 15px 25px; background: #e9ecef; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 1.1em; transition: all 0.3s; }
+        .people-btn:hover { background: #4f8cff; color: white; }
+        .people-btn.selected { background: #4f8cff; color: white; }
+        .modal-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 25px; }
+        .modal-btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; }
+        .confirm-btn { background: #2ecc40; color: white; }
+        .cancel-btn { background: #666; color: white; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
+        
+        .table-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: center; }
+        .action-btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; }
+        .release-btn { background: #2ecc40; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>店員用ダッシュボード</h1>
+        
+        {% if success %}
+        <div class="success">{{ success }}</div>
+        {% endif %}
+        
+        <h2>テーブル状況（空席をクリックして案内開始）</h2>
+        <div class="table-grid">
+            {% for table in tables %}
+            <div class="table-card {% if table.is_available %}available{% else %}occupied{% endif %}" 
+                 data-table-id="{{ table.id }}" 
+                 data-seat-type="{{ table.type }}" 
+                 data-available="{{ table.is_available|lower }}">
+                <div class="table-number">{{ table.id }}番</div>
+                <div class="table-type">{{ table.type }}</div>
+                <div class="status {% if table.is_available %}available{% else %}occupied{% endif %}">
+                    {% if table.is_available %}空き{% else %}使用中{% endif %}
+                </div>
+                
+                {% if not table.is_available %}
+                <div class="table-actions">
+                    <form method="post" action="{{ url_for('quick_table_action') }}" style="display: inline;">
+                        <input type="hidden" name="table_id" value="{{ table.id }}">
+                        <input type="hidden" name="action" value="release">
+                        <button type="submit" class="action-btn release-btn">空きにする</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 人数選択モーダル -->
+    <div id="seatModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">テーブル案内</h2>
+            <p id="modalDescription">人数を選択してください</p>
+            
+            <form id="quickSeatForm" method="post" action="{{ url_for('quick_seat_assignment') }}">
+                <input type="hidden" id="modalTableId" name="table_id">
+                <input type="hidden" id="modalSeatType" name="seat_type">
+                <input type="hidden" id="modalPeople" name="people">
+                
+                <div class="people-buttons">
+                    <div class="people-btn" data-people="1">1名</div>
+                    <div class="people-btn" data-people="2">2名</div>
+                    <div class="people-btn" data-people="3">3名</div>
+                    <div class="people-btn" data-people="4">4名</div>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="modal-btn confirm-btn" id="confirmBtn" disabled>案内開始</button>
+                    <button type="button" class="modal-btn cancel-btn" id="cancelBtn">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let selectedPeople = null;
+        let currentTableId = null;
+        let currentSeatType = null;
+        
+        // DOMが読み込まれた後にイベントリスナーを設定
+        document.addEventListener('DOMContentLoaded', function() {
+            // テーブルカードのクリックイベント
+            document.querySelectorAll('.table-card.available').forEach(card => {
+                card.addEventListener('click', function() {
+                    const tableId = this.dataset.tableId;
+                    const seatType = this.dataset.seatType;
+                    openSeatModal(tableId, seatType);
+                });
+            });
+            
+            // 人数ボタンのクリックイベント
+            document.querySelectorAll('.people-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const people = parseInt(this.dataset.people);
+                    selectPeople(people);
+                });
+            });
+            
+            // モーダルを閉じるイベント
+            document.querySelector('.close').addEventListener('click', closeSeatModal);
+            document.getElementById('cancelBtn').addEventListener('click', closeSeatModal);
+            
+            // モーダル外をクリックで閉じる
+            document.getElementById('seatModal').addEventListener('click', function(event) {
+                if (event.target === this) {
+                    closeSeatModal();
+                }
+            });
+        });
+        
+        function openSeatModal(tableId, seatType) {
+            currentTableId = tableId;
+            currentSeatType = seatType;
+            selectedPeople = null;
+            
+            document.getElementById('modalTableId').value = tableId;
+            document.getElementById('modalSeatType').value = seatType;
+            document.getElementById('modalTitle').textContent = `${tableId}番テーブル（${seatType}）`;
+            document.getElementById('modalDescription').textContent = `${seatType}席の人数を選択してください`;
+            
+            // 人数ボタンをリセット
+            document.querySelectorAll('.people-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.display = 'block';
+            });
+            
+            // カウンターの場合は4名ボタンを非表示
+            if (seatType === 'カウンター') {
+                document.querySelector('.people-btn[data-people="4"]').style.display = 'none';
+            }
+            
+            document.getElementById('confirmBtn').disabled = true;
+            document.getElementById('seatModal').style.display = 'block';
+        }
+        
+        function closeSeatModal() {
+            document.getElementById('seatModal').style.display = 'none';
+            selectedPeople = null;
+            currentTableId = null;
+            currentSeatType = null;
+        }
+        
+        function selectPeople(num) {
+            // カウンターで4名が選択された場合は無効
+            if (currentSeatType === 'カウンター' && num === 4) {
+                return;
+            }
+            
+            selectedPeople = num;
+            document.getElementById('modalPeople').value = num;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('.people-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`.people-btn[data-people="${num}"]`).classList.add('selected');
+            
+            // 確認ボタンを有効化
+            document.getElementById('confirmBtn').disabled = false;
+        }
+        
+        // 成功メッセージがある場合は5秒後に非表示にする
+        const successMsg = document.querySelector('.success');
+        if (successMsg) {
+            setTimeout(function() {
+                successMsg.style.display = 'none';
+            }, 5000);
+        }
+        
+       
+    </script>
+</body>
+</html>

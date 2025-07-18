@@ -5,6 +5,7 @@ import time
 import threading
 import queue
 import uuid
+import numpy as np
 from personAttrCapture import analyze_with_gpt4o, update_seat_end_time
 
 # --- 店員用アプリのみ ---
@@ -42,9 +43,17 @@ tables = [
 ]
 
 # カメラ起動
-camera = cv2.VideoCapture(0)
-if not camera.isOpened():
-    raise RuntimeError("カメラが見つかりません")
+try:
+    camera = cv2.VideoCapture(0)
+    if not camera.isOpened():
+        print("警告: カメラが見つかりません。モック撮影モードで動作します。")
+        camera = None
+    else:
+        print("カメラが正常に起動しました。")
+except Exception as e:
+    print(f"カメラ初期化エラー: {e}")
+    print("モック撮影モードで動作します。")
+    camera = None
 
 # datasetフォルダ作成
 os.makedirs("dataset", exist_ok=True)
@@ -233,4 +242,6 @@ if __name__ == "__main__":
     try:
         app.run(debug=True, host="0.0.0.0", port=5002)
     finally:
-        camera.release()
+        if camera is not None:
+            camera.release()
+            print("カメラリソースを解放しました。")

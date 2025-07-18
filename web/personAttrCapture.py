@@ -89,7 +89,9 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None, people: int = None
     
     # JSONファイルに保存
     save_to_json(result, image_path, table_id)
-    # CSVにも保存
+    # CSVにも保存（日付ごとのディレクトリに保存）
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    csv_path = f"analysis_results/{date_str}/analysis_result_{date_str}.csv"
     save_analysis_as_csv(
         {
             "image_path": image_path,
@@ -103,7 +105,7 @@ def analyze_with_gpt4o(image_path: str, table_id: int = None, people: int = None
                 "analysis_version": "v2.0_detailed_age"
             }
         },
-        "analysis_results/analysis_result.csv",
+        csv_path,
         selected_people=people  # ボタンで選択された人数
     )
     return result
@@ -175,10 +177,12 @@ def update_seat_end_time(table_id: int):
                 print(f"テーブル{table_id}の席を空けた時間を記録しました: {json_file}")
 
                 # --- ここでCSVも更新 ---
+                date_str = datetime.now().strftime("%Y-%m-%d")
+                csv_path = f"analysis_results/{date_str}/analysis_result_{date_str}.csv"
                 update_seat_end_time_in_csv(
                     table_id,
                     data["seat_end_time"],
-                    "analysis_results/analysis_result.csv"
+                    csv_path
                 )
                 return
                 
@@ -192,22 +196,62 @@ def update_seat_end_time_in_csv(table_id, seat_end_time, csv_path):
     """
     指定されたtable_idの最新行のseat_end_timeをCSVでも更新する
     """
-    import pandas as pd
-
+    import tempfile
+    import shutil
+    
     if not os.path.exists(csv_path):
         print(f"CSVファイルが見つかりません: {csv_path}")
+        print("CSV更新をスキップします")
         return
 
-    df = pd.read_csv(csv_path, encoding="utf-8")
-    # table_idが一致し、seat_end_timeが空欄の最新行を探す
-    mask = (df["table_id"] == table_id) & (df["seat_end_time"].isnull() | (df["seat_end_time"] == ""))
-    if mask.any():
-        idx = df[mask].index[-1]  # 最新行
-        df.at[idx, "seat_end_time"] = seat_end_time
-        df.to_csv(csv_path, index=False, encoding="utf-8")
-        print(f"CSVのseat_end_timeも更新しました（table_id={table_id}）")
-    else:
-        print("CSVで更新対象の行が見つかりませんでした")
+    try:
+        # 一時ファイルを使用してCSVを安全に更新
+        temp_file = None
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8', newline='') as temp_file:
+            temp_path = temp_file.name
+            
+            # 元ファイルを読み込み
+            rows = []
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                fieldnames = reader.fieldnames
+                
+                # 更新対象の行を探しながらデータを読み込み
+                target_row_index = -1
+                for i, row in enumerate(reader):
+                    if (str(row.get("table_id")) == str(table_id) and 
+                        (not row.get("seat_end_time") or row.get("seat_end_time").strip() == "")):
+                        target_row_index = i
+                    rows.append(row)
+            
+            # 一時ファイルに書き込み
+            writer = csv.DictWriter(temp_file, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            for i, row in enumerate(rows):
+                if i == target_row_index:
+                    row["seat_end_time"] = seat_end_time
+                writer.writerow(row)
+        
+        # 一時ファイルを元ファイルに置き換え
+        if target_row_index >= 0:
+            # ディレクトリが存在することを確認
+            os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+            shutil.move(temp_path, csv_path)
+            print(f"CSVのseat_end_timeも更新しました（table_id={table_id}）")
+        else:
+            os.unlink(temp_path)  # 一時ファイルを削除
+            print("CSVで更新対象の行が見つかりませんでした")
+            
+    except PermissionError as e:
+        print(f"CSVファイルへのアクセス権限がありません: {e}")
+        print("ファイルが他のアプリケーションで開かれている可能性があります")
+        if temp_file and os.path.exists(temp_path):
+            os.unlink(temp_path)
+    except Exception as e:
+        print(f"CSV処理でエラーが発生しました: {e}")
+        if temp_file and os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 def print_analysis_summary(result: dict):
     """分析結果をわかりやすく表示する関数"""
@@ -255,42 +299,69 @@ def save_analysis_as_csv(json_data, csv_path, selected_people=None):
     analysis_resultのdetailed_analysisをCSVで保存
     selected_people: ボタンで選択された人数（int）
     """
-    analysis = json_data["analysis_result"]
-    detailed = analysis.get("detailed_analysis", [])
-    total_count = analysis.get("total_count", None)
-    # 差分を計算
-    people_diff = None
-    if selected_people is not None and total_count is not None:
-        people_diff = int(selected_people) - int(total_count)
-    # seat_end_timeもjson_dataから取得
-    seat_end_time = json_data.get("seat_end_time")
-    # CSVのヘッダー
-    fieldnames = [
-        "image_path", "table_id", "seat_start_time", "seat_end_time",
-        "selected_people", "camera_total", "people_diff",
-        "person_id", "gender", "estimated_age_range", "age_category", "confidence"
-    ]
-    # ファイルがなければヘッダーを書き込む
-    write_header = not os.path.exists(csv_path)
-    with open(csv_path, "a", newline='', encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        if write_header:
-            writer.writeheader()
-        for person in detailed:
-            writer.writerow({
-                "image_path": json_data.get("image_path"),
-                "table_id": json_data.get("table_id"),
-                "seat_start_time": json_data.get("seat_start_time"),
-                "seat_end_time": seat_end_time,  # ここでseat_end_timeも記録
-                "selected_people": selected_people,
-                "camera_total": total_count,
-                "people_diff": people_diff,
-                "person_id": person.get("person_id"),
-                "gender": person.get("gender"),
-                "estimated_age_range": person.get("estimated_age_range"),
-                "age_category": person.get("age_category"),
-                "confidence": person.get("confidence"),
-            })
+    import time
+    
+    try:
+        analysis = json_data["analysis_result"]
+        detailed = analysis.get("detailed_analysis", [])
+        total_count = analysis.get("total_count", None)
+        # 差分を計算
+        people_diff = None
+        if selected_people is not None and total_count is not None:
+            people_diff = int(selected_people) - int(total_count)
+        # seat_end_timeもjson_dataから取得
+        seat_end_time = json_data.get("seat_end_time")
+        # CSVのヘッダー
+        fieldnames = [
+            "image_path", "table_id", "seat_start_time", "seat_end_time",
+            "selected_people", "camera_total", "people_diff",
+            "person_id", "gender", "estimated_age_range", "age_category", "confidence"
+        ]
+        # ディレクトリが存在しない場合は作成
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        
+        # ファイルロックを回避するために少し待機
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # ファイルがなければヘッダーを書き込む
+                write_header = not os.path.exists(csv_path)
+                with open(csv_path, "a", newline='', encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    if write_header:
+                        writer.writeheader()
+                    for person in detailed:
+                        writer.writerow({
+                            "image_path": json_data.get("image_path"),
+                            "table_id": json_data.get("table_id"),
+                            "seat_start_time": json_data.get("seat_start_time"),
+                            "seat_end_time": seat_end_time,  # ここでseat_end_timeも記録
+                            "selected_people": selected_people,
+                            "camera_total": total_count,
+                            "people_diff": people_diff,
+                            "person_id": person.get("person_id"),
+                            "gender": person.get("gender"),
+                            "estimated_age_range": person.get("estimated_age_range"),
+                            "age_category": person.get("age_category"),
+                            "confidence": person.get("confidence"),
+                        })
+                print(f"CSV分析結果を保存しました: {csv_path}")
+                break  # 成功したのでループを抜ける
+                
+            except PermissionError as e:
+                if attempt < max_retries - 1:
+                    print(f"CSVファイルがロックされています。再試行します... ({attempt + 1}/{max_retries})")
+                    time.sleep(1)  # 1秒待機してリトライ
+                else:
+                    print(f"CSVファイルへのアクセス権限がありません: {e}")
+                    print("ファイルが他のアプリケーションで開かれている可能性があります")
+            except Exception as e:
+                print(f"CSV保存でエラーが発生しました: {e}")
+                break
+                
+    except Exception as e:
+        print(f"CSV保存の準備でエラーが発生しました: {e}")
+        print("CSV保存をスキップしました")
 
 # 直接実行時のテスト（インポート時は実行されない）
 if __name__ == "__main__":

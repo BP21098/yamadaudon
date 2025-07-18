@@ -1,0 +1,27 @@
+{
+  "image_path": "dataset/photo_1752802847.jpg",
+  "table_id": 17,
+  "seat_start_time": "2025-07-18_10-40-51",
+  "seat_end_time": null,
+  "analysis_result": {
+    "total_count": 0,
+    "gender_breakdown": {
+      "men": 0,
+      "women": 0
+    },
+    "age_breakdown": {
+      "children": 0,
+      "teenagers": 0,
+      "young_adults": 0,
+      "middle_aged": 0,
+      "seniors": 0
+    },
+    "detailed_analysis": [],
+    "analysis_notes": "There are no people visible in the image."
+  },
+  "metadata": {
+    "analyzed_at": "2025-07-18_10-40-51",
+    "model_used": "gpt-4o",
+    "analysis_version": "v2.0_detailed_age"
+  }
+}

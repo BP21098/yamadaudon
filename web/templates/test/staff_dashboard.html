@@ -37,17 +37,24 @@
         .table-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: center; }
         .action-btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; }
         .release-btn { background: #2ecc40; color: white; }
+        .move-btn { background: #ff8c00; color: white; }
 
         /* 写真関連スタイル */
         .photo-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 30px; }
         .photo-item { background: white; border-radius: 8px; padding: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .photo-item img { border-radius: 4px; margin-bottom: 10px; }
+        .photo-item img { border-radius: 4px; margin-bottom: 10px; max-width: 120px; height: auto; }
+        .photo-item img[src=""], .photo-item img:not([src]) { display: none; }
+        .photo-item .no-image { display: inline-block; width: 120px; height: 90px; background: #f0f0f0; border: 2px dashed #ccc; line-height: 90px; color: #999; }
         .photo-item span { display: block; font-size: 0.9em; color: #333; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>店員用ダッシュボード</h1>
+        
+        {% if success %}
+        <div class="success">{{ success }}</div>
+        {% endif %}
         
         <!-- 撮影ボタン -->
         <form method="post" action="{{ url_for('take_photo') }}">
@@ -58,7 +65,9 @@
         <div class="photo-list">
             {% for photo in photos %}
             <div class="photo-item">
-                <img src="{{ url_for('dataset_file', filename=photo['filename'].split('/')[-1]) }}" width="120">
+                <img src="{{ url_for('dataset_file', filename=photo['filename']) }}" width="120" alt="写真" 
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                <div class="no-image" style="display: none;">画像なし</div>
                 <span>{{ photo['filename'] }}</span>
                 <!-- 紐づけフォーム -->
                 <form method="post" action="{{ url_for('assign_photo') }}">
@@ -107,10 +116,52 @@
                         <input type="hidden" name="action" value="release">
                         <button type="submit" class="action-btn release-btn">空きにする</button>
                     </form>
+                    <button type="button" class="action-btn move-btn" onclick="openMoveModal({{ table.id }}, '{{ table.type }}')">移動</button>
                 </div>
                 {% endif %}
             </div>
             {% endfor %}
+        </div>
+    </div>
+
+    <!-- 席移動モーダル -->
+    <div id="moveModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeMoveModal()">&times;</span>
+            <h2 id="moveModalTitle">席移動</h2>
+            <p id="moveModalDescription">移動先を選択してください</p>
+            
+            <form id="moveForm" method="post" action="{{ url_for('move_table') }}">
+                <input type="hidden" id="moveFromTableId" name="from_table_id">
+                <input type="hidden" id="moveToTableId" name="to_table_id">
+                <input type="hidden" id="movePeople" name="people">
+                
+                <!-- 人数選択 -->
+                <div class="people-buttons">
+                    <div class="people-btn" data-people="1" onclick="selectMovePeople(1)">1名</div>
+                    <div class="people-btn" data-people="2" onclick="selectMovePeople(2)">2名</div>
+                    <div class="people-btn" data-people="3" onclick="selectMovePeople(3)">3名</div>
+                    <div class="people-btn" data-people="4" onclick="selectMovePeople(4)">4名</div>
+                </div>
+                
+                <!-- 移動先テーブル選択 -->
+                <div style="margin: 20px 0;">
+                    <label for="moveToTable">移動先テーブル:</label>
+                    <select id="moveToTable" onchange="selectMoveToTable()">
+                        <option value="">選択してください</option>
+                        {% for table in tables %}
+                        {% if table.is_available %}
+                        <option value="{{ table.id }}" data-type="{{ table.type }}">{{ table.id }}番 ({{ table.type }})</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="modal-btn confirm-btn" id="moveConfirmBtn" disabled>移動実行</button>
+                    <button type="button" class="modal-btn cancel-btn" onclick="closeMoveModal()">キャンセル</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -146,6 +197,12 @@
         let currentTableId = null;
         let currentSeatType = null;
         
+        // 席移動用変数
+        let moveFromTableId = null;
+        let moveFromSeatType = null;
+        let moveSelectedPeople = null;
+        let moveToTableId = null;
+        
         // DOMが読み込まれた後にイベントリスナーを設定
         document.addEventListener('DOMContentLoaded', function() {
             // テーブルカードのクリックイベント
@@ -175,7 +232,95 @@
                     closeSeatModal();
                 }
             });
+            
+            // 移動モーダル外をクリックで閉じる
+            document.getElementById('moveModal').addEventListener('click', function(event) {
+                if (event.target === this) {
+                    closeMoveModal();
+                }
+            });
         });
+        
+        // 席移動モーダルを開く
+        function openMoveModal(fromTableId, fromSeatType) {
+            moveFromTableId = fromTableId;
+            moveFromSeatType = fromSeatType;
+            moveSelectedPeople = null;
+            moveToTableId = null;
+            
+            document.getElementById('moveFromTableId').value = fromTableId;
+            document.getElementById('moveModalTitle').textContent = `${fromTableId}番テーブル (${fromSeatType}) からの移動`;
+            document.getElementById('moveModalDescription').textContent = `人数と移動先を選択してください`;
+            
+            // 人数ボタンをリセット
+            document.querySelectorAll('#moveModal .people-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.display = 'block';
+            });
+            
+            // 移動先選択をリセット
+            document.getElementById('moveToTable').value = '';
+            document.getElementById('moveConfirmBtn').disabled = true;
+            document.getElementById('moveModal').style.display = 'block';
+        }
+        
+        // 席移動モーダルを閉じる
+        function closeMoveModal() {
+            document.getElementById('moveModal').style.display = 'none';
+            moveFromTableId = null;
+            moveFromSeatType = null;
+            moveSelectedPeople = null;
+            moveToTableId = null;
+        }
+        
+        // 移動用人数選択
+        function selectMovePeople(num) {
+            moveSelectedPeople = num;
+            document.getElementById('movePeople').value = num;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('#moveModal .people-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`#moveModal .people-btn[data-people="${num}"]`).classList.add('selected');
+            
+            // 移動先がカウンターで4名の場合は無効化
+            const selectedOption = document.getElementById('moveToTable').selectedOptions[0];
+            if (selectedOption && selectedOption.dataset.type === 'カウンター' && num === 4) {
+                document.getElementById('moveToTable').value = '';
+                moveToTableId = null;
+            }
+            
+            checkMoveFormComplete();
+        }
+        
+        // 移動先テーブル選択
+        function selectMoveToTable() {
+            const select = document.getElementById('moveToTable');
+            const selectedOption = select.selectedOptions[0];
+            
+            if (selectedOption) {
+                moveToTableId = parseInt(selectedOption.value);
+                document.getElementById('moveToTableId').value = moveToTableId;
+                
+                // カウンターで4名が選択されている場合は無効
+                if (selectedOption.dataset.type === 'カウンター' && moveSelectedPeople === 4) {
+                    alert('カウンター席は最大3名までです');
+                    select.value = '';
+                    moveToTableId = null;
+                    document.getElementById('moveToTableId').value = '';
+                }
+            } else {
+                moveToTableId = null;
+                document.getElementById('moveToTableId').value = '';
+            }
+            
+            checkMoveFormComplete();
+        }
+        
+        // 移動フォームの完了チェック
+        function checkMoveFormComplete() {
+            const isComplete = moveSelectedPeople && moveToTableId;
+            document.getElementById('moveConfirmBtn').disabled = !isComplete;
+        }
         
         function openSeatModal(tableId, seatType) {
             currentTableId = tableId;
@@ -188,14 +333,14 @@
             document.getElementById('modalDescription').textContent = `${seatType}席の人数を選択してください`;
             
             // 人数ボタンをリセット
-            document.querySelectorAll('.people-btn').forEach(btn => {
+            document.querySelectorAll('#seatModal .people-btn').forEach(btn => {
                 btn.classList.remove('selected');
                 btn.style.display = 'block';
             });
             
             // カウンターの場合は4名ボタンを非表示
             if (seatType === 'カウンター') {
-                document.querySelector('.people-btn[data-people="4"]').style.display = 'none';
+                document.querySelector('#seatModal .people-btn[data-people="4"]').style.display = 'none';
             }
             
             document.getElementById('confirmBtn').disabled = true;
@@ -219,8 +364,8 @@
             document.getElementById('modalPeople').value = num;
             
             // ボタンの選択状態を更新
-            document.querySelectorAll('.people-btn').forEach(btn => btn.classList.remove('selected'));
-            document.querySelector(`.people-btn[data-people="${num}"]`).classList.add('selected');
+            document.querySelectorAll('#seatModal .people-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`#seatModal .people-btn[data-people="${num}"]`).classList.add('selected');
             
             // 確認ボタンを有効化
             document.getElementById('confirmBtn').disabled = false;
@@ -233,8 +378,6 @@
                 successMsg.style.display = 'none';
             }, 5000);
         }
-        
-       
     </script>
 </body>
 </html>

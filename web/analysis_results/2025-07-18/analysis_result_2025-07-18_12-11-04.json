@@ -1,0 +1,63 @@
+{
+  "image_path": "dataset/photo_1752808040.jpg",
+  "table_id": 28,
+  "seat_start_time": "2025-07-18_12-11-04",
+  "seat_end_time": null,
+  "analysis_result": {
+    "total_count": 5,
+    "gender_breakdown": {
+      "men": 3,
+      "women": 2
+    },
+    "age_breakdown": {
+      "children": 0,
+      "teenagers": 0,
+      "young_adults": 5,
+      "middle_aged": 0,
+      "seniors": 0
+    },
+    "detailed_analysis": [
+      {
+        "person_id": 1,
+        "gender": "male",
+        "estimated_age_range": "20-39",
+        "age_category": "young_adult",
+        "confidence": "high"
+      },
+      {
+        "person_id": 2,
+        "gender": "female",
+        "estimated_age_range": "20-39",
+        "age_category": "young_adult",
+        "confidence": "high"
+      },
+      {
+        "person_id": 3,
+        "gender": "female",
+        "estimated_age_range": "20-39",
+        "age_category": "young_adult",
+        "confidence": "high"
+      },
+      {
+        "person_id": 4,
+        "gender": "male",
+        "estimated_age_range": "20-39",
+        "age_category": "young_adult",
+        "confidence": "high"
+      },
+      {
+        "person_id": 5,
+        "gender": "male",
+        "estimated_age_range": "20-39",
+        "age_category": "young_adult",
+        "confidence": "high"
+      }
+    ],
+    "analysis_notes": "The lighting and angle provide a clear view of the individuals, allowing for confident analysis."
+  },
+  "metadata": {
+    "analyzed_at": "2025-07-18_12-11-04",
+    "model_used": "gpt-4o",
+    "analysis_version": "v2.0_detailed_age"
+  }
+}

@@ -125,12 +125,15 @@ def find_best_table(seat_type):
 @app.route("/")
 def staff_dashboard():
     """店員用ダッシュボード：テーブル状況と案内入力"""
-    # datasetフォルダ内の写真一覧を取得
     photo_dir = "dataset"
     photo_files = []
-    for fname in os.listdir(photo_dir):
-        if fname.lower().endswith(".jpg"):
-            photo_files.append({"filename": f"{photo_dir}/{fname}"})
+    # ファイル名（photo_タイムスタンプ.jpg）で昇順ソート
+    jpg_files = sorted(
+        [fname for fname in os.listdir(photo_dir) if fname.lower().endswith(".jpg")],
+        key=lambda x: int(x.split('_')[1].split('.')[0])
+    )
+    for fname in jpg_files:
+        photo_files.append({"filename": f"{photo_dir}/{fname}"})
     return render_template("test/staff_dashboard.html", tables=tables, photos=photo_files)
 
 @app.route("/quick_seat", methods=["POST"])
@@ -231,6 +234,16 @@ def assign_photo():
     for table in tables:
         if table["id"] == table_id:
             table["is_available"] = False
+
+    # 解析ボタン押下時に dataset フォルダ内の写真をすべて削除
+    photo_dir = "dataset"
+    for fname in os.listdir(photo_dir):
+        if fname.lower().endswith(".jpg"):
+            try:
+                os.remove(os.path.join(photo_dir, fname))
+            except Exception as e:
+                print(f"写真削除エラー: {fname} - {e}")
+
     return redirect(url_for("staff_dashboard"))
 
 @app.route('/dataset/<path:filename>')

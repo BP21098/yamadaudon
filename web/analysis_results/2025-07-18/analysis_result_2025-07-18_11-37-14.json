@@ -1,0 +1,35 @@
+{
+  "image_path": "dataset/photo_1752806139.jpg",
+  "table_id": 1,
+  "seat_start_time": "2025-07-18_11-37-14",
+  "seat_end_time": null,
+  "analysis_result": {
+    "total_count": 1,
+    "gender_breakdown": {
+      "men": 0,
+      "women": 0
+    },
+    "age_breakdown": {
+      "children": 0,
+      "teenagers": 0,
+      "young_adults": 0,
+      "middle_aged": 0,
+      "seniors": 0
+    },
+    "detailed_analysis": [
+      {
+        "person_id": 1,
+        "gender": "unknown",
+        "estimated_age_range": "unavailable",
+        "age_category": "unknown",
+        "confidence": "low"
+      }
+    ],
+    "analysis_notes": "The person is partially visible and cannot be clearly identified in terms of gender or age group."
+  },
+  "metadata": {
+    "analyzed_at": "2025-07-18_11-37-14",
+    "model_used": "gpt-4o",
+    "analysis_version": "v2.0_detailed_age"
+  }
+}

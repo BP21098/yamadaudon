@@ -37,15 +37,48 @@
         .table-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: center; }
         .action-btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; }
         .release-btn { background: #2ecc40; color: white; }
+
+        /* 写真関連スタイル */
+        .photo-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 30px; }
+        .photo-item { background: white; border-radius: 8px; padding: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .photo-item img { border-radius: 4px; margin-bottom: 10px; }
+        .photo-item span { display: block; font-size: 0.9em; color: #333; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>店員用ダッシュボード</h1>
         
-        {% if success %}
-        <div class="success">{{ success }}</div>
-        {% endif %}
+        <!-- 撮影ボタン -->
+        <form method="post" action="{{ url_for('take_photo') }}">
+            <button type="submit" class="action-btn">写真を撮影</button>
+        </form>
+        
+        <!-- 撮影済み写真一覧 -->
+        <div class="photo-list">
+            {% for photo in photos %}
+            <div class="photo-item">
+                <img src="{{ url_for('dataset_file', filename=photo['filename'].split('/')[-1]) }}" width="120">
+                <span>{{ photo['filename'] }}</span>
+                <!-- 紐づけフォーム -->
+                <form method="post" action="{{ url_for('assign_photo') }}">
+                    <input type="hidden" name="photo_filename" value="{{ photo['filename'] }}">
+                    <select name="people">
+                        <option value="1">1名</option>
+                        <option value="2">2名</option>
+                        <option value="3">3名</option>
+                        <option value="4">4名</option>
+                    </select>
+                    <select name="table_id">
+                        {% for table in tables %}
+                        <option value="{{ table.id }}">{{ table.id }}番 ({{ table.type }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="action-btn">紐づけて解析</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
         
         <h2>テーブル状況（空席をクリックして案内開始）</h2>
         <div class="table-grid">

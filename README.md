@@ -32,6 +32,13 @@ inet6 fe80::b34b:fa3:cd04:ebe9%utun7 prefixlen 64 scopeid 0x16
 inet6 fe80::c5b5:4341:38a0:1ec8%utun8 prefixlen 64 scopeid 0x17
 inet6 fe80::437e:e706:558d:d7e2%utun0 prefixlen 64 scopeid 0x18
 
+
+# アクセスできるURL： 
+# http://127.0.0.1:5001  # お客様用アプリ
+# http://127.0.0.1:5002  # 店員用アプリ
+
+
+
 →IPアドレス：172.31.81.113
 http://172.31.81.113:5001/
 http://172.31.81.113:5002/

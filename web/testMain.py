@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 import cv2
 import os
 import time
@@ -72,25 +72,16 @@ def background_analyze(filename, table_id, session_id, people):
         print("GPT-4o 呼び出しエラー:", e)
         analysis_queue.put((session_id, {"error": error_msg}))
 
-def capture_and_analyze_async(table_id, session_id, people):
-    """写真を撮影し、バックグラウンドで解析を開始"""
-    ret, frame = camera.read()
-    if ret:
-        filename = f"dataset/photo_{int(time.time())}.jpg"
-        cv2.imwrite(filename, frame)
-        print(f"写真を保存しました: {filename}")
-
-        # バックグラウンドで解析を開始
-        analysis_thread = threading.Thread(
-            target=background_analyze, args=(filename, table_id, session_id, people)
-        )
-        analysis_thread.daemon = True
-        analysis_thread.start()
-
-        return {"status": "analyzing", "message": "解析中です..."}
-    else:
-        print("カメラから画像を取得できませんでした")
-        return {"error": "カメラエラー"}
+def capture_and_analyze_async(table_id, session_id, people, image_path):
+    """既存画像ファイルでバックグラウンド解析を開始"""
+    # 新規撮影は行わず、image_pathをそのまま使う
+    print(f"解析対象画像: {image_path}")
+    analysis_thread = threading.Thread(
+        target=background_analyze, args=(image_path, table_id, session_id, people)
+    )
+    analysis_thread.daemon = True
+    analysis_thread.start()
+    return {"status": "analyzing", "message": "解析中です..."}
 
 def find_best_table(seat_type):
     """隣が使用中でない空席を優先して返す"""
@@ -125,7 +116,13 @@ def find_best_table(seat_type):
 @app.route("/")
 def staff_dashboard():
     """店員用ダッシュボード：テーブル状況と案内入力"""
-    return render_template("test/staff_dashboard.html", tables=tables)
+    # datasetフォルダ内の写真一覧を取得
+    photo_dir = "dataset"
+    photo_files = []
+    for fname in os.listdir(photo_dir):
+        if fname.lower().endswith(".jpg"):
+            photo_files.append({"filename": f"{photo_dir}/{fname}"})
+    return render_template("test/staff_dashboard.html", tables=tables, photos=photo_files)
 
 @app.route("/quick_seat", methods=["POST"])
 def quick_seat_assignment():
@@ -203,6 +200,33 @@ def get_analysis_result():
         analysis_queue.put(item)
     
     return jsonify({"status": "analyzing"})
+
+@app.route("/take_photo", methods=["POST"])
+def take_photo():
+    ret, frame = camera.read()
+    if ret:
+        filename = f"dataset/photo_{int(time.time())}.jpg"
+        cv2.imwrite(filename, frame)
+        # 写真リスト管理（例: photos = [{"filename": ...}, ...] をグローバルやセッションで管理）
+    return redirect(url_for("staff_dashboard"))
+
+@app.route("/assign_photo", methods=["POST"])
+def assign_photo():
+    photo_filename = request.form.get("photo_filename")
+    people = int(request.form.get("people"))
+    table_id = int(request.form.get("table_id"))
+    session_id = str(uuid.uuid4())
+    # 解析開始
+    analysis_status = capture_and_analyze_async(table_id=table_id, session_id=session_id, people=people, image_path=photo_filename)
+    # 席状態更新など
+    for table in tables:
+        if table["id"] == table_id:
+            table["is_available"] = False
+    return redirect(url_for("staff_dashboard"))
+
+@app.route('/dataset/<path:filename>')
+def dataset_file(filename):
+    return send_from_directory('dataset', filename)
 
 # --- Flaskアプリ起動 ---
 if __name__ == "__main__":

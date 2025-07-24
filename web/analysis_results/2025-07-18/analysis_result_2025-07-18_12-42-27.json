@@ -1,0 +1,56 @@
+{
+  "image_path": "dataset/photo_1752810100.jpg",
+  "table_id": 17,
+  "seat_start_time": "2025-07-18_12-42-27",
+  "seat_end_time": "2025-07-18_13-19-14",
+  "analysis_result": {
+    "total_count": 4,
+    "gender_breakdown": {
+      "men": 2,
+      "women": 1
+    },
+    "age_breakdown": {
+      "children": 1,
+      "teenagers": 0,
+      "young_adults": 1,
+      "middle_aged": 2,
+      "seniors": 0
+    },
+    "detailed_analysis": [
+      {
+        "person_id": 1,
+        "gender": "female",
+        "estimated_age_range": "40-50",
+        "age_category": "middle_aged",
+        "confidence": "medium"
+      },
+      {
+        "person_id": 2,
+        "gender": "male",
+        "estimated_age_range": "40-50",
+        "age_category": "middle_aged",
+        "confidence": "medium"
+      },
+      {
+        "person_id": 3,
+        "gender": "male",
+        "estimated_age_range": "30-40",
+        "age_category": "young_adult",
+        "confidence": "medium"
+      },
+      {
+        "person_id": 4,
+        "gender": "female",
+        "estimated_age_range": "5-10",
+        "age_category": "child",
+        "confidence": "medium"
+      }
+    ],
+    "analysis_notes": "The visibility and angles make certain age estimations approximate."
+  },
+  "metadata": {
+    "analyzed_at": "2025-07-18_12-42-27",
+    "model_used": "gpt-4o",
+    "analysis_version": "v2.0_detailed_age"
+  }
+}

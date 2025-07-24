@@ -1,0 +1,35 @@
+{
+  "image_path": "dataset/photo_1752810200.jpg",
+  "table_id": 1,
+  "seat_start_time": "2025-07-18_12-43-42",
+  "seat_end_time": "2025-07-18_13-03-22",
+  "analysis_result": {
+    "total_count": 1,
+    "gender_breakdown": {
+      "men": 0,
+      "women": 1
+    },
+    "age_breakdown": {
+      "children": 0,
+      "teenagers": 0,
+      "young_adults": 0,
+      "middle_aged": 1,
+      "seniors": 0
+    },
+    "detailed_analysis": [
+      {
+        "person_id": 1,
+        "gender": "female",
+        "estimated_age_range": "40-59",
+        "age_category": "middle_aged",
+        "confidence": "high"
+      }
+    ],
+    "analysis_notes": "The analysis is based on the appearance of the individual entering the building."
+  },
+  "metadata": {
+    "analyzed_at": "2025-07-18_12-43-42",
+    "model_used": "gpt-4o",
+    "analysis_version": "v2.0_detailed_age"
+  }
+}

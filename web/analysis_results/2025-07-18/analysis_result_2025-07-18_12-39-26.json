@@ -1,20 +1,20 @@
 {
-  "image_path": "dataset/photo_1752808557.jpg",
-  "table_id": 17,
-  "seat_start_time": "2025-07-18_12-16-39",
-  "seat_end_time": "2025-07-18_12-40-37",
+  "image_path": "dataset/photo_1752809912.jpg",
+  "table_id": 25,
+  "seat_start_time": "2025-07-18_12-39-26",
+  "seat_end_time": "2025-07-18_13-09-32",
   "analysis_result": {
-    "total_count": 3,
+    "total_count": 4,
     "gender_breakdown": {
       "men": 3,
-      "women": 0
+      "women": 1
     },
     "age_breakdown": {
       "children": 0,
       "teenagers": 0,
       "young_adults": 2,
       "middle_aged": 1,
-      "seniors": 0
+      "seniors": 1
     },
     "detailed_analysis": [
       {
@@ -22,27 +22,34 @@
         "gender": "male",
         "estimated_age_range": "20-39",
         "age_category": "young_adult",
-        "confidence": "medium"
+        "confidence": "high"
       },
       {
         "person_id": 2,
         "gender": "male",
+        "estimated_age_range": "60+",
+        "age_category": "senior",
+        "confidence": "high"
+      },
+      {
+        "person_id": 3,
+        "gender": "female",
         "estimated_age_range": "20-39",
         "age_category": "young_adult",
         "confidence": "medium"
       },
       {
-        "person_id": 3,
+        "person_id": 4,
         "gender": "male",
         "estimated_age_range": "40-59",
         "age_category": "middle_aged",
         "confidence": "medium"
       }
     ],
-    "analysis_notes": "The image quality affects the accuracy of age estimation. Gender estimation is based on appearance."
+    "analysis_notes": "Due to the positioning and lighting, the confidence in some classifications is medium."
   },
   "metadata": {
-    "analyzed_at": "2025-07-18_12-16-39",
+    "analyzed_at": "2025-07-18_12-39-26",
     "model_used": "gpt-4o",
     "analysis_version": "v2.0_detailed_age"
   }

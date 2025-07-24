@@ -2,7 +2,7 @@
   "image_path": "dataset/photo_1752808040.jpg",
   "table_id": 28,
   "seat_start_time": "2025-07-18_12-11-04",
-  "seat_end_time": null,
+  "seat_end_time": "2025-07-18_13-07-48",
   "analysis_result": {
     "total_count": 5,
     "gender_breakdown": {

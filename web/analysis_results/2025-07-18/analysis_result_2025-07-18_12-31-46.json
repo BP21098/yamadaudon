@@ -1,8 +1,8 @@
 {
-  "image_path": "dataset/photo_1752808557.jpg",
-  "table_id": 17,
-  "seat_start_time": "2025-07-18_12-16-39",
-  "seat_end_time": "2025-07-18_12-40-37",
+  "image_path": "dataset/photo_1752809475.jpg",
+  "table_id": 16,
+  "seat_start_time": "2025-07-18_12-31-46",
+  "seat_end_time": "2025-07-18_12-53-20",
   "analysis_result": {
     "total_count": 3,
     "gender_breakdown": {
@@ -20,29 +20,29 @@
       {
         "person_id": 1,
         "gender": "male",
-        "estimated_age_range": "20-39",
-        "age_category": "young_adult",
-        "confidence": "medium"
+        "estimated_age_range": "40-59",
+        "age_category": "middle_aged",
+        "confidence": "high"
       },
       {
         "person_id": 2,
         "gender": "male",
         "estimated_age_range": "20-39",
         "age_category": "young_adult",
-        "confidence": "medium"
+        "confidence": "high"
       },
       {
         "person_id": 3,
         "gender": "male",
-        "estimated_age_range": "40-59",
-        "age_category": "middle_aged",
-        "confidence": "medium"
+        "estimated_age_range": "20-39",
+        "age_category": "young_adult",
+        "confidence": "high"
       }
     ],
-    "analysis_notes": "The image quality affects the accuracy of age estimation. Gender estimation is based on appearance."
+    "analysis_notes": "All three individuals appear to be males with confidence based on attire and physical appearance. The lighting and angles are fairly clear to assess their age categories."
   },
   "metadata": {
-    "analyzed_at": "2025-07-18_12-16-39",
+    "analyzed_at": "2025-07-18_12-31-46",
     "model_used": "gpt-4o",
     "analysis_version": "v2.0_detailed_age"
   }

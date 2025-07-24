@@ -1,8 +1,8 @@
 {
-  "image_path": "dataset/photo_1752808534.jpg",
-  "table_id": 25,
-  "seat_start_time": "2025-07-18_12-15-54",
-  "seat_end_time": "2025-07-18_12-38-12",
+  "image_path": "dataset/photo_1752809824.jpg",
+  "table_id": 14,
+  "seat_start_time": "2025-07-18_12-37-23",
+  "seat_end_time": "2025-07-18_12-53-32",
   "analysis_result": {
     "total_count": 1,
     "gender_breakdown": {
@@ -22,13 +22,13 @@
         "gender": "male",
         "estimated_age_range": "20-39",
         "age_category": "young_adult",
-        "confidence": "high"
+        "confidence": "medium"
       }
     ],
-    "analysis_notes": "The identification is based on appearance."
+    "analysis_notes": "Estimated age range based on appearance. Confidence is medium due to image quality."
   },
   "metadata": {
-    "analyzed_at": "2025-07-18_12-15-54",
+    "analyzed_at": "2025-07-18_12-37-23",
     "model_used": "gpt-4o",
     "analysis_version": "v2.0_detailed_age"
   }
